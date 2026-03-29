@@ -128,18 +128,13 @@ input[type="text"]::placeholder { color: #6B4A10; }
 .divider::before { left: 0; }
 .divider::after { right: 0; }
 
-.join-row {
-  display: flex;
-  gap: 8px;
-}
-.join-row input {
-  flex: 1;
+#room-code-input {
   text-transform: uppercase;
-  letter-spacing: 4px;
-  font-size: 1.1rem;
+  letter-spacing: 6px;
+  font-size: 1.3rem;
   text-align: center;
+  font-family: monospace;
 }
-.join-row .btn { flex-shrink: 0; }
 
 /* ===== BUTTONS ===== */
 .btn {
