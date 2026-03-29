@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Bananagrams</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <!-- HOME SCREEN -->
+  <div id="screen-home" class="screen active">
+    <div class="home-inner">
+      <div class="logo">🍌</div>
+      <h1>Bananagrams</h1>
+      <p class="tagline">Multiplayer word tile fun</p>
+      <input id="player-name" type="text" placeholder="Your name" maxlength="20" autocomplete="off" autocorrect="off" spellcheck="false">
+      <div class="home-actions">
+        <button class="btn btn-primary btn-lg" id="btn-create">Create Game</button>
+        <div class="divider">or</div>
+        <div class="join-row">
+          <input id="room-code-input" type="text" placeholder="Room code" maxlength="4" autocomplete="off" autocorrect="off" autocapitalize="characters" spellcheck="false">
+          <button class="btn btn-secondary btn-lg" id="btn-join">Join</button>
+        </div>
+      </div>
+      <div id="home-error" class="error-msg hidden"></div>
+    </div>
+  </div>
+
+  <!-- LOBBY SCREEN -->
+  <div id="screen-lobby" class="screen">
+    <div class="lobby-inner">
+      <div class="logo">🍌</div>
+      <h2>Waiting Room</h2>
+      <div class="room-code-display">
+        Room: <strong id="lobby-code"></strong>
+        <button class="btn-copy" id="btn-copy-code" title="Copy code">📋</button>
+      </div>
+      <p class="lobby-hint">Share the code with friends!</p>
+      <div id="lobby-players"></div>
+      <div id="lobby-error" class="error-msg hidden"></div>
+      <button class="btn btn-primary btn-lg" id="btn-start" style="display:none">Start Game</button>
+      <p id="waiting-msg" class="muted">Waiting for host to start...</p>
+    </div>
+  </div>
+
+  <!-- GAME SCREEN -->
+  <div id="screen-game" class="screen">
+    <!-- Top bar -->
+    <div id="top-bar">
+      <div id="top-left">
+        <span id="room-badge">🍌</span>
+        <span id="bunch-display">Bunch: <strong id="bunch-count">0</strong></span>
+      </div>
+      <div id="top-right">
+        <button class="btn btn-action" id="btn-peel" disabled>PEEL!</button>
+        <button class="btn btn-bananas" id="btn-bananas" disabled>🍌 BANANAS!</button>
+      </div>
+    </div>
+
+    <!-- Players status strip -->
+    <div id="players-strip"></div>
+
+    <!-- Game board (scrollable) -->
+    <div id="board-container">
+      <div id="board"></div>
+    </div>
+
+    <!-- Hand area -->
+    <div id="hand-area">
+      <div id="hand-controls">
+        <button class="btn btn-sm btn-secondary" id="btn-grab-all">Grab All</button>
+        <button class="btn btn-sm btn-danger" id="btn-dump" disabled>DUMP</button>
+        <span id="hand-count-label">Hand: <strong id="hand-count">0</strong></span>
+      </div>
+      <div id="hand-tiles"></div>
+    </div>
+
+    <div id="game-toast" class="toast hidden"></div>
+  </div>
+
+  <!-- GAME OVER SCREEN -->
+  <div id="screen-gameover" class="screen">
+    <div class="gameover-inner">
+      <div class="logo">🍌</div>
+      <h2 id="winner-text"></h2>
+      <p id="gameover-sub"></p>
+      <button class="btn btn-primary btn-lg" id="btn-play-again" style="display:none">Play Again</button>
+      <button class="btn btn-secondary btn-lg" id="btn-home">Back to Home</button>
+    </div>
+  </div>
+
+  <script src="/socket.io/socket.io.js"></script>
+  <script src="game.js"></script>
+</body>
+</html>
