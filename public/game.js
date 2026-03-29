@@ -27,6 +27,102 @@ const state = {
 // ===== Socket =====
 const socket = io();
 
+// ===== Dictionary =====
+let dictionary = null;
+
+async function loadDictionary() {
+  if (dictionary) return dictionary;
+  const res = await fetch('/words.txt');
+  const text = await res.text();
+  dictionary = new Set(text.split('\n').map(w => w.trim().toLowerCase()).filter(w => w.length >= 2));
+  return dictionary;
+}
+
+// Pre-load dictionary as soon as the page loads
+loadDictionary();
+
+// Validate all words on the board. Returns a Set of "r,c" keys that belong to invalid words.
+function validateBoard() {
+  if (state.boardTiles.size === 0) return new Set();
+
+  const invalidKeys = new Set();
+  const dict = dictionary;
+  if (!dict) return new Set(); // dict not loaded yet, skip
+
+  // Group tiles by row and column
+  const byRow = new Map(); // row -> [col, ...]
+  const byCol = new Map(); // col -> [row, ...]
+  for (const key of state.boardTiles.keys()) {
+    const [r, c] = key.split(',').map(Number);
+    if (!byRow.has(r)) byRow.set(r, []);
+    byRow.get(r).push(c);
+    if (!byCol.has(c)) byCol.set(c, []);
+    byCol.get(c).push(r);
+  }
+  for (const arr of byRow.values()) arr.sort((a, b) => a - b);
+  for (const arr of byCol.values()) arr.sort((a, b) => a - b);
+
+  // Split a sorted array of positions into consecutive runs
+  function getRuns(positions) {
+    const runs = [];
+    let run = [positions[0]];
+    for (let i = 1; i < positions.length; i++) {
+      if (positions[i] === positions[i - 1] + 1) {
+        run.push(positions[i]);
+      } else {
+        runs.push(run);
+        run = [positions[i]];
+      }
+    }
+    runs.push(run);
+    return runs;
+  }
+
+  // Check horizontal runs
+  for (const [row, cols] of byRow) {
+    for (const run of getRuns(cols)) {
+      if (run.length < 2) continue;
+      const word = run.map(c => state.boardTiles.get(`${row},${c}`).letter).join('').toLowerCase();
+      if (!dict.has(word)) {
+        for (const c of run) invalidKeys.add(`${row},${c}`);
+      }
+    }
+  }
+
+  // Check vertical runs
+  for (const [col, rows] of byCol) {
+    for (const run of getRuns(rows)) {
+      if (run.length < 2) continue;
+      const word = run.map(r => state.boardTiles.get(`${r},${col}`).letter).join('').toLowerCase();
+      if (!dict.has(word)) {
+        for (const r of run) invalidKeys.add(`${r},${col}`);
+      }
+    }
+  }
+
+  // Flag isolated tiles (no horizontal or vertical neighbor — not part of any word)
+  for (const key of state.boardTiles.keys()) {
+    const [r, c] = key.split(',').map(Number);
+    const hasNeighbor =
+      state.boardTiles.has(`${r},${c - 1}`) || state.boardTiles.has(`${r},${c + 1}`) ||
+      state.boardTiles.has(`${r - 1},${c}`) || state.boardTiles.has(`${r + 1},${c}`);
+    if (!hasNeighbor) invalidKeys.add(key);
+  }
+
+  return invalidKeys;
+}
+
+function highlightInvalidTiles(invalidKeys) {
+  $('board').querySelectorAll('.tile').forEach(el => {
+    const key = `${el.dataset.row},${el.dataset.col}`;
+    el.classList.toggle('invalid', invalidKeys.has(key));
+  });
+}
+
+function clearInvalidHighlights() {
+  $('board').querySelectorAll('.tile.invalid').forEach(el => el.classList.remove('invalid'));
+}
+
 // ===== Util =====
 function $(id) { return document.getElementById(id); }
 
@@ -211,6 +307,7 @@ function handleBoardTileClick(row, col) {
     state.hand.push(tile);
     state.selected = tile;
   }
+  clearInvalidHighlights();
   renderBoard();
   renderHand();
   updateActionButtons();
@@ -227,6 +324,7 @@ function handleBoardCellClick(row, col) {
   state.boardTiles.set(key, tile);
   state.selected = null;
 
+  clearInvalidHighlights();
   renderBoard();
   renderHand();
   updateActionButtons();
@@ -325,6 +423,13 @@ function updateBunchDisplay() {
 
 // ===== Game Actions =====
 $('btn-peel').addEventListener('click', () => {
+  const invalidKeys = validateBoard();
+  if (invalidKeys.size > 0) {
+    highlightInvalidTiles(invalidKeys);
+    showToast(`Fix your words first! (${invalidKeys.size} tile${invalidKeys.size > 1 ? 's' : ''} highlighted)`, 3500);
+    return;
+  }
+  clearInvalidHighlights();
   $('btn-peel').disabled = true;
   socket.emit('peel', (res) => {
     if (res && !res.ok) {
@@ -336,6 +441,13 @@ $('btn-peel').addEventListener('click', () => {
 
 $('btn-bananas').addEventListener('click', () => {
   if (state.hand.length > 0) return showToast('You still have tiles in your hand!');
+  const invalidKeys = validateBoard();
+  if (invalidKeys.size > 0) {
+    highlightInvalidTiles(invalidKeys);
+    showToast(`Fix your words first! (${invalidKeys.size} tile${invalidKeys.size > 1 ? 's' : ''} highlighted)`, 3500);
+    return;
+  }
+  clearInvalidHighlights();
   $('btn-bananas').disabled = true;
   socket.emit('bananas', (res) => {
     if (res && !res.ok) {
